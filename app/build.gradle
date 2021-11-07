@@ -1,0 +1,89 @@
+plugins {
+	id 'org.springframework.boot' version '2.5.6'
+	id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+	// Kotlin Language
+	id "org.jetbrains.kotlin.jvm" version '1.5.31'
+	id "org.jetbrains.kotlin.plugin.spring" version '1.5.31'
+    // JPA schema
+	id "io.github.divinespear.jpa-schema-generate" version "0.4.0"
+}
+
+group = 'me.yaman.can'
+version = '0.0.1'
+sourceCompatibility = '11'
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation('org.springframework.boot:spring-boot-starter-data-r2dbc')
+	implementation('org.springframework.boot:spring-boot-starter-webflux')
+	implementation('javax.persistence:javax.persistence-api')
+
+	// PostgreSQL Database R2DBC Driver
+	runtimeOnly('io.r2dbc:r2dbc-postgresql')
+	// H2 Database R2DBC Driver
+	runtimeOnly('io.r2dbc:r2dbc-h2')
+	// H2-Console Drivers
+	runtimeOnly('com.h2database:h2')
+	runtimeOnly('org.postgresql:postgresql')
+	generateSchemaLibs('org.hibernate:hibernate-core:5.5.7.Final')
+
+	implementation ('me.yaman.can:spring-boot-webflux-h2-console:0.0.1')
+	implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+	implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
+	implementation("org.jetbrains.kotlin:kotlin-reflect")
+	implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+	testImplementation('org.springframework.boot:spring-boot-starter-test')
+	testImplementation('io.projectreactor:reactor-test')
+}
+
+test {
+	useJUnitPlatform()
+}
+
+compileKotlin {
+	kotlinOptions {
+		freeCompilerArgs = ["-Xjsr305=strict"]
+		jvmTarget = "11"
+	}
+}
+
+compileTestKotlin {
+	kotlinOptions {
+		freeCompilerArgs = ["-Xjsr305=strict"]
+		jvmTarget = "11"
+	}
+}
+
+generateSchema {
+	vendor = 'hibernate'
+	packageToScan = ["me.yaman.can.database.r2dbc.entity".toString()]
+	scriptAction = 'create'
+	format = true
+	createOutputFileName = "V001__schema.sql"
+	lineSeparator = 'CRLF'
+	targets {
+		postgres {
+			outputDirectory = file("$buildDir/db/migration/postgres")
+			databaseProductName = 'PostgreSQL Custom Dialect'
+			properties = [
+					'hibernate.hbm2ddl.delimiter': ';',
+					'hibernate.dialect': 'org.hibernate.dialect.PostgreSQL10Dialect',
+					'hibernate.physical_naming_strategy': 'org.springframework.boot.orm.jpa.hibernate.SpringPhysicalNamingStrategy',
+					'hibernate.implicit_naming_strategy': 'org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy'
+			]
+		}
+		h2 {
+			outputDirectory = file("src/main/resources/db/migration/h2")
+			databaseProductName = 'H2 Custom Dialect'
+			properties = [
+					'hibernate.hbm2ddl.delimiter': ';',
+					'hibernate.dialect': 'org.hibernate.dialect.H2Dialect',
+					'hibernate.physical_naming_strategy': 'org.springframework.boot.orm.jpa.hibernate.SpringPhysicalNamingStrategy',
+					'hibernate.implicit_naming_strategy': 'org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy'
+			]
+		}
+	}
+}
